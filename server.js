@@ -9,13 +9,13 @@ const app = express();
 
 // CORS configuration to allow frontend requests from localhost
 const corsOptions = {
-  origin: 'http://localhost:3000', // Allow only requests from this origin
+  origin: 'https://bulk-mail-front-end.vercel.app', // Allow only your frontend URL
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type'],
-  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  credentials: true, // Allow credentials if needed
 };
 
-app.use(cors(corsOptions)); // Enable CORS for the specified origin
+app.use(cors(corsOptions)); // Enable CORS with the updated options
 app.use(express.json()); // To parse JSON request body
 
 // MongoDB connection
