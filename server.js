@@ -1,21 +1,30 @@
-// index.js
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
-const cors = require('cors'); // For enabling CORS
+const cors = require('cors');
 const Credential = require('./models/Credential');
 
 const app = express();
 
-// Middleware
+// CORS configuration to allow frontend requests from localhost
+const corsOptions = {
+  origin: 'http://localhost:3000', // Allow only requests from this origin
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+};
+
+app.use(cors(corsOptions)); // Enable CORS for the specified origin
 app.use(express.json()); // To parse JSON request body
-app.use(cors()); // Allow cross-origin requests
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.error("❌ Mongo Error:", err));
+
+// Handle preflight requests (for CORS)
+app.options('*', cors(corsOptions));
 
 // POST endpoint to handle sending emails
 app.post('/send-bulk', async (req, res) => {
@@ -35,7 +44,7 @@ app.post('/send-bulk', async (req, res) => {
 
     const mailOptions = {
       from: creds.user,
-      to: recipients, // Comma-separated string or array of emails
+      to: recipients, 
       subject: subject,
       html: message
     };
@@ -49,5 +58,5 @@ app.post('/send-bulk', async (req, res) => {
 });
 
 // Start the server
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
