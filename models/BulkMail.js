@@ -1,15 +1,10 @@
 // models/BulkMail.js
 import mongoose from "mongoose";
 
-const bulkMailSchema = new mongoose.Schema(
-  {
-    subject: String,
-    content: String,
-    recipients: [String],
-  },
-  {
-    timestamps: true,
-  }
-);
+const BulkMailSchema = new mongoose.Schema({
+  subject: String,
+  message: String,
+  recipients: [String],
+}, { timestamps: true });
 
-export default mongoose.model("BulkMail", bulkMailSchema);
+export default mongoose.models.BulkMail || mongoose.model("BulkMail", BulkMailSchema);
