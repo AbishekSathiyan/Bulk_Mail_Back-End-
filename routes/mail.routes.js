@@ -1,11 +1,13 @@
-import express from "express";
+// routes/mail.routes.js
+import { Router } from "express";
 import nodemailer from "nodemailer";
 import BulkMail from "../models/BulkMail.js";
 import dotenv from "dotenv";
 
 dotenv.config();
-const router = express.Router();
+const router = Router();
 
+/* ---------- Mail Transporter ---------- */
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -14,70 +16,77 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// POST /api/send-bulk - Send emails and store data
+/* ---------- POST /api/send-bulk ---------- */
 router.post("/send-bulk", async (req, res) => {
   const { subject, content: message, recipients } = req.body;
 
-  // Validate input
-  if (!subject || !message || !recipients?.length) {
-    return res.status(400).json({ 
-      error: "Subject, content, and at least one recipient are required" 
+  if (!subject || !message || !Array.isArray(recipients) || recipients.length === 0) {
+    return res.status(400).json({
+      error: "Subject, content, and at least one recipient are required",
     });
   }
 
   try {
-    // Send email
-    const info = await transporter.sendMail({
-      from: process.env.MAIL_USER,
-      to: recipients,
-      subject,
-      html: message,
-    });
+    const results = [];
 
-    // Store successful attempt
+    for (const email of recipients) {
+      try {
+        const info = await transporter.sendMail({
+          from: process.env.MAIL_USER,
+          to: email,
+          subject,
+          html: message,
+        });
+
+        results.push({
+          email,
+          status: "sent",
+          sentAt: new Date(),
+          error: null,
+          messageId: info.messageId,
+        });
+      } catch (err) {
+        results.push({
+          email,
+          status: "failed",
+          sentAt: new Date(),
+          error: err.message,
+        });
+      }
+    }
+
+    const overallStatus = results.every((r) => r.status === "sent")
+      ? "sent"
+      : results.some((r) => r.status === "sent")
+      ? "partial"
+      : "failed";
+
     const mailRecord = await BulkMail.create({
       subject,
       content: message,
-      recipients,
-      status: "sent",
-      messageId: info.messageId
+      recipients: results,
+      status: overallStatus,
     });
 
     res.status(201).json({
       success: true,
       data: mailRecord,
-      message: `Email sent to ${recipients.length} recipients`
+      message: `Processed ${recipients.length} recipient(s)`,
     });
-
   } catch (error) {
-    // Store failed attempt
-    const failedRecord = await BulkMail.create({
-      subject,
-      content: message,
-      recipients,
-      status: "failed",
-      error: error.message
-    });
-
+    console.error("Bulk send error:", error);
     res.status(500).json({
       success: false,
       error: "Email sending failed",
       details: process.env.NODE_ENV === "development" ? error.message : undefined,
-      record: failedRecord
     });
   }
 });
 
-// GET /api/history - Fetch all email records
+/* ---------- GET /api/history ---------- */
 router.get("/history", async (req, res) => {
   try {
-    const { 
-      limit = 20, 
-      page = 1,
-      status,
-      sort = "-createdAt",
-      search 
-    } = req.query;
+    const { limit = 20, page = 1, status, sort = "-createdAt", search } = req.query;
 
     const query = {};
     if (status) query.status = status;
@@ -85,60 +94,75 @@ router.get("/history", async (req, res) => {
       query.$or = [
         { subject: { $regex: search, $options: "i" } },
         { content: { $regex: search, $options: "i" } },
-        { recipients: { $regex: search, $options: "i" } }
+        { "recipients.email": { $regex: search, $options: "i" } },
       ];
     }
 
-    const options = {
+    const opts = {
       limit: parseInt(limit),
       skip: (parseInt(page) - 1) * parseInt(limit),
-      sort: sort
+      sort,
     };
 
     const [emails, total] = await Promise.all([
-      BulkMail.find(query, null, options),
-      BulkMail.countDocuments(query)
+      BulkMail.find(query, null, opts),
+      BulkMail.countDocuments(query),
     ]);
 
-    res.status(200).json({
+    res.json({
       success: true,
       data: emails,
       pagination: {
         total,
         page: parseInt(page),
         limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit))
-      }
+        totalPages: Math.ceil(total / parseInt(limit)),
+      },
     });
-
-  } catch (error) {
+  } catch (err) {
+    console.error("History fetch error:", err);
     res.status(500).json({
       success: false,
       error: "Failed to fetch email history",
-      details: process.env.NODE_ENV === "development" ? error.message : undefined
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
   }
 });
 
-// GET /api/history/:id - Get single email record
+/* ---------- GET /api/history/:id ---------- */
 router.get("/history/:id", async (req, res) => {
   try {
     const mail = await BulkMail.findById(req.params.id);
     if (!mail) {
-      return res.status(404).json({
-        success: false,
-        error: "Email record not found"
-      });
+      return res.status(404).json({ success: false, error: "Record not found" });
     }
-    res.status(200).json({
-      success: true,
-      data: mail
-    });
-  } catch (error) {
+    res.json({ success: true, data: mail });
+  } catch (err) {
+    console.error("Single record fetch error:", err);
     res.status(500).json({
       success: false,
-      error: "Failed to fetch email record",
-      details: process.env.NODE_ENV === "development" ? error.message : undefined
+      error: "Failed to fetch record",
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
+  }
+});
+
+/* ---------- GET /api/recipients/:id ---------- */
+router.get("/recipients/:id", async (req, res) => {
+  try {
+    const mail = await BulkMail.findById(req.params.id, "recipients");
+    if (!mail) {
+      return res.status(404).json({ success: false, error: "Mail record not found" });
+    }
+
+    const emailList = mail.recipients.map((r) => r.email);
+    res.json({ success: true, recipients: emailList });
+  } catch (err) {
+    console.error("Recipient fetch error:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch recipients",
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
   }
 });

@@ -1,4 +1,27 @@
+// models/BulkMail.js
 import mongoose from "mongoose";
+
+const RecipientSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    trim: true,
+    lowercase: true,
+  },
+  status: {
+    type: String,
+    enum: ["sent", "failed", "pending"],
+    default: "pending",
+  },
+  sentAt: {
+    type: Date,
+    default: null,
+  },
+  error: {
+    type: String,
+    default: null,
+  },
+});
 
 const BulkMailSchema = new mongoose.Schema(
   {
@@ -13,40 +36,25 @@ const BulkMailSchema = new mongoose.Schema(
       required: [true, "Content is required"],
     },
     recipients: {
-      type: [String],
-      required: [true, "Recipients are required"],
-      validate: {
-        validator: function (v) {
-          return (
-            v.length > 0 &&
-            v.every((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-          );
-        },
-        message: "At least one valid email address is required",
-      },
+      type: [RecipientSchema],
+      required: true,
+      validate: (v) => v.length > 0,
     },
     status: {
       type: String,
-      enum: ["pending", "sent", "failed"],
+      enum: ["pending", "sent", "failed", "partial"],
       default: "pending",
     },
-    messageId: {
-      type: String,
-      required: false,
-    },
-    error: {
-      type: String,
-      required: false,
-    },
+    messageId: String,
   },
   {
-    timestamps: true, // creates createdAt and updatedAt automatically
+    timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
 
-// Virtual field for recipient count
+// Virtual field to count recipients
 BulkMailSchema.virtual("recipientCount").get(function () {
   return this.recipients.length;
 });

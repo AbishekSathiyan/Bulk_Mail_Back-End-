@@ -5,29 +5,25 @@ import dotenv from "dotenv";
 import mailRoutes from "./routes/mail.routes.js";
 
 dotenv.config();
+mongoose.set("strictQuery", true);
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 5000;
 
-/* ---------- middleware ---------- */
 app.use(cors());
 app.use(express.json());
 
-/* ---------- routes ---------- */
-app.use("/api", mailRoutes);          // →  POST /api/send-bulk
-                                      // →  GET  /api/history
+app.use("/api", mailRoutes);
+app.get("/", (_req, res) => res.send("🚀 Bulk‑Mail backend is running"));
 
-/* ---------- test root ---------- */
-app.get("/", (_req, res) =>
-  res.send("🚀 Bulk‑Mail backend is running")
-);
+(async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ MongoDB connected");
 
-/* ---------- DB & server ---------- */
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
-
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-);
+    app.listen(PORT, () => console.log(`🚀 Server @ http://localhost:${PORT}`));
+  } catch (err) {
+    console.error("❌ DB connect failed:", err.message);
+    process.exit(1);
+  }
+})();
