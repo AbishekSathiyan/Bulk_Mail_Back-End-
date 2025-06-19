@@ -8,7 +8,7 @@ import mailRoutes from "./routes/mail.routes.js";
 dotenv.config();
 mongoose.set("strictQuery", true);
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 5000;
 
 /* ------------------------------------------------------------------ */
@@ -19,11 +19,8 @@ const allowedOrigins = [FRONTEND, "http://localhost:3000"];
 
 app.use(
   cors({
-    origin: (origin, cb) =>
-      !origin || allowedOrigins.includes(origin)
-        ? cb(null, true)
-        : cb(new Error(`Origin ${origin} not allowed by CORS`)),
-    methods: ["GET", "POST", "OPTIONS"],
+    origin: "https://bulk-mail-app-z9bh.onrender.com", // ✅ your deployed Vite frontend
+    methods: ["GET", "POST"],
     credentials: true,
   })
 );
@@ -47,7 +44,9 @@ app.get("/", (_req, res) => res.send("🚀 Bulk‑Mail backend is running"));
 /* ------------------------------------------------------------------ */
 /* 4️⃣  Catch‑all 404                                                 */
 /* ------------------------------------------------------------------ */
-app.use((req, res) => res.status(404).json({ success: false, error: "Not found" }));
+app.use((req, res) =>
+  res.status(404).json({ success: false, error: "Not found" })
+);
 
 /* ------------------------------------------------------------------ */
 /* 5️⃣  Connect to MongoDB & start server                             */
