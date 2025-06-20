@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 5000;
 /* 1️⃣  CORS – allow frontend on Render + localhost dev               */
 /* ------------------------------------------------------------------ */
 const allowedOrigins = [
-  "http://localhost:3000",
+  "https://bulk-mail-back-end.vercel.app/api",
   "https://bulk-mail-app-z9bh.onrender.com",
 ];
 
