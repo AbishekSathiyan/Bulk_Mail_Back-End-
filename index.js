@@ -19,13 +19,12 @@ const PORT = process.env.PORT || 5000;
 /* ------------------------------------------------------------------ */
 /* 1️⃣  CORS – allow all Vercel front‑end URLs + localhost dev */
 const allowedOrigins = [
-  // main production build
   "https://bulk-mail-front-inkkr8ynu-abisheksathiyans-projects.vercel.app",
-  // latest preview build from the git‑main branch
   "https://bulk-mail-front-end-git-main-abisheksathiyans-projects.vercel.app",
-  // local dev
-  "http://localhost:5173",
+  "https://bulk-mail-front-2bfiqvzqo-abisheksathiyans-projects.vercel.app", // ✅ Add this
+  "http://localhost:5173"
 ];
+
 
 const corsOptions = {
   origin: (origin, cb) =>
