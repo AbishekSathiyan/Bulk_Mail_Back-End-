@@ -14,24 +14,26 @@ const PORT = process.env.PORT || 5000;
 /* ------------------------------------------------------------------ */
 /* 1️⃣  CORS – allow frontend on Render + localhost dev               */
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* 1️⃣  CORS – allow frontend on Vercel + localhost dev               */
+/* ------------------------------------------------------------------ */
 const allowedOrigins = [
-  "https://bulk-mail-back-end.vercel.app/api",
-  "https://bulk-mail-app-z9bh.onrender.com",
+  "https://bulk-mail-front-inkkr8ynu-abisheksathiyans-projects.vercel.app",
+  "http://localhost:5173",
 ];
 
-app.use(
-  cors({
-    origin: (origin, cb) =>
-      !origin || allowedOrigins.includes(origin)
-        ? cb(null, true)
-        : cb(new Error("Not allowed by CORS")),
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  })
-);
+const corsOptions = {
+  origin: (origin, cb) =>
+    !origin || allowedOrigins.includes(origin)
+      ? cb(null, true)
+      : cb(new Error("Not allowed by CORS")),
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,                 // keep only if you really send cookies
+};
 
-// Handle preflight requests globally
-app.options("*", cors());
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));   // ✅  SAME options for pre‑flight!
 
 /* ------------------------------------------------------------------ */
 /* 2️⃣  Basic middleware                                              */
