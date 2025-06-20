@@ -14,18 +14,23 @@ const PORT = process.env.PORT || 5000;
 /* ------------------------------------------------------------------ */
 /* 1️⃣  CORS – allow frontend on Render + localhost dev               */
 /* ------------------------------------------------------------------ */
-const FRONTEND = (process.env.APPLICATION_URI || "").replace(/\/$/, ""); // strip trailing /
-const allowedOrigins = [FRONTEND, "http://localhost:3000"];
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://bulk-mail-app-z9bh.onrender.com",
+];
 
 app.use(
   cors({
-    origin: "https://bulk-mail-app-z9bh.onrender.com", // ✅ your deployed Vite frontend
-    methods: ["GET", "POST"],
+    origin: (origin, cb) =>
+      !origin || allowedOrigins.includes(origin)
+        ? cb(null, true)
+        : cb(new Error("Not allowed by CORS")),
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
 
-/* Handle OPTIONS pre‑flight globally */
+// Handle preflight requests globally
 app.options("*", cors());
 
 /* ------------------------------------------------------------------ */
